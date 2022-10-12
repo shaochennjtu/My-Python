@@ -1,0 +1,14 @@
+Pylarion document:
+http://pylarion-doc.rhev-ci-vms.eng.rdu2.redhat.com/
+
+Certification Install:
+1. wget http://password.corp.redhat.com/legacy.crt
+2. sudo mv legacy.crt /etc/pki/ca-trust/source/anchors/newca.crt
+3. sudo update-ca-trust extract
+
+Pylarion install:
+1. git clone https://code.engineering.redhat.com/gerrit/pylarion
+2. python setup.py install
+3. python setup.py bdist_rpm (If you want to make rpm package)
+4. pip install --upgrade pip
+5. pip install -r requirements.txt
