@@ -1,0 +1,170 @@
+import random
+import sys
+import time
+import pygame
+
+SCREEN_WIDTH = 600  # 屏幕宽度
+SCREEN_HEIGHT = 480  # 屏幕高度
+BGCOLOR = (40, 40, 60)  # 背景色
+BLACK = (0, 0, 0)  # 网格线颜色
+LINE_WIDTH = 1  # 网格线宽度
+SIZE = 20  # 小方格大小
+DARK = (200, 200, 200)  # 蛇的颜色
+RED = (200, 30, 30)  # 红色，GAME OVER 的字体颜色
+
+
+def get_speed(score):
+    # 根据分数得到速度
+    speed_level = [(1, 0.5, 0, 50), (2, 0.4, 51, 150), (3, 0.3, 151, 300), (4, 0.2, 301, 500), (5, 0.1, 501, None)]
+    for speed_info, speed, score_start, score_stop in speed_level:
+        if score_stop and score_start <= score <= score_stop:
+            return speed_info, speed
+        elif score_stop is None and score >= score_start:
+            return speed_info, speed
+
+
+def get_food_style():
+    # 随机得到一个颜色RGB, 10,20,30为随机分值
+    return random.choice([(10, (255, 100, 100)), (20, (100, 255, 100)), (30, (100, 100, 255))])
+
+
+def create_random_food(snake):
+    # 随机创建食物
+    # 计算出所有方格，屏幕的宽度除以每个方格的大小，屏幕的高度除以每个方格的大小
+    all_position = [(x, y) for x in range(SCREEN_WIDTH // SIZE) for y in range(2, SCREEN_HEIGHT // SIZE)]
+    # 计算出可用方格（除了蛇之外的方格）列表不支持减操作，转成集合，用一个集合减去另外一个集合
+    temp_position = set(all_position) - set(snake)
+    # 从可用方格中随机出一个位置
+    return random.choice(list(temp_position))
+
+
+def create_snake():
+    # 创建蛇
+    snake = list()
+    snake.append((2, 2))
+    snake.append((1, 2))
+    snake.append((0, 2))
+    return snake
+
+
+def main():
+    # pygame初始化
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption('贪吃蛇')
+
+    # 分数、速度的字体
+    font = pygame.font.SysFont('SimHei', 24)
+    # Game Over的字体
+    game_over_font = pygame.font.SysFont('SimHei', 72)
+    game_over_font_width, game_over_font_height = game_over_font.size('GAME OVER')
+
+    # 再来一局
+    game_over_font_width, game_over_font_height = font.size('鼠标点击任意位置，再来一局！')
+
+    # 创建蛇
+    snake = create_snake()
+
+    # 随机创建食物
+    food = create_random_food(snake)
+    # 奖励的得分，随机食物的颜色
+    reward_score, food_style = get_food_style()
+
+    # 得分
+    score = 0
+
+    # 蛇的移动方向
+    pos = (1, 0)
+    # 蛇的移动速度
+    speed_lever, speed = get_speed(score)
+    last_time = time.time()
+
+    # 游戏结束标记
+    game_over = False
+
+    # 创建计时器（防止while循环过快，占用太多CPU的问题）
+    clock = pygame.time.Clock()
+
+    while True:
+        # 事件检测（例如键盘、鼠标等）
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_w, pygame.K_UP):
+                    pos = (0, -1)   # x不变，y向上移动一格
+                elif event.key in (pygame.K_s, pygame.K_DOWN):
+                    pos = (0 ,1)
+                elif event.key in (pygame.K_a, pygame.K_LEFT):
+                    pos = (-1 ,0)
+                elif event.key in (pygame.K_d, pygame.K_RIGHT):
+                    pos = (1 ,0)
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.buttom:
+                if game_over:
+                    snake = create_snake()
+                    food = create_random_food()
+                    reward_score, food_style = get_food_style()
+                    pos = (1, 0)
+                    score = 0
+                    speed_lever, speed = get_speed(score)
+                    # 重置游戏结束标记
+                    game_over = False
+
+
+        # 判断时间是否充足，然后移动蛇的位置
+        if not game_over and time.time() - last_time > speed:
+            last_time = time.time()
+            # 移动蛇的位置
+            next_position = (snake[0][0] + pos[0], snake[0][1] + pos[1])
+            # 判断要移动的位置是否是食物出现的位置
+            if next_position == food:
+                snake.insert(0, next_position)  #将新的位置添加到列表的头
+                score += reward_score   # 吃到食物后，奖励分数
+                speed_lever, speed = get_speed(score)    # 重新计算速度
+                # 创建一个新食物
+                food = create_random_food(snake)
+                reward_score, food_style = get_food_style()
+            else:   #下一个位置不可以是屏幕边界，不可以是蛇的身体
+                if 0 <= next_position[0] <= SCREEN_WIDTH // SIZE -1 and \
+                        2 <= next_position[1] <= SCREEN_HEIGHT // SIZE -1 and \
+                        next_position not in snake:
+                    snake.insert(0, next_position)  # 将新位置添加到列表头， 蛇头加一个
+                    snake.pop() # 移除原列表最后一个元素位置， 蛇尾减一个
+                else:
+                    # 游戏结束
+                    game_over = True
+
+        # 填充背景色
+        screen.fill(BGCOLOR)
+
+        # 画网格线（竖线）
+        for x in range(SIZE, SCREEN_WIDTH, SIZE):
+            pygame.draw.line(screen, BLACK, (x, 2 * SIZE),(x, SCREEN_HEIGHT), LINE_WIDTH)
+
+        # 画网格线（横线）
+        for y in range(2 * SIZE, SCREEN_HEIGHT, SIZE):
+            pygame.draw.line(screen, BLACK, (0, y),(SCREEN_WIDTH, y), LINE_WIDTH)
+
+        # 画蛇
+        for s in snake:
+            pygame.draw.rect(screen, DARK, (s[0] * SIZE + LINE_WIDTH, s[1] * SIZE + LINE_WIDTH, SIZE - LINE_WIDTH * 2, SIZE - LINE_WIDTH * 2), 0)
+
+        # 画食物
+        pygame.draw.rect(screen, food_style, (food[0] * SIZE, food[1] * SIZE, SIZE, SIZE), 0)
+
+        # 显示速度，分数
+        speed_info = font.render('speed: %d' % speed_lever, True, (255, 255, 255))
+        screen.blit(speed_info, (30, 7))
+        score_info = font.render('score: %d' % score, True, (255, 255, 255))
+        screen.blit(score_info, (450, 7))
+
+        #
+
+        # 刷新显示（此时窗口才会真正的显示）
+        pygame.display.update()
+        # FPS（每秒钟显示画面的次数）
+        clock.tick(60)  # 通过一定的延时，实现1秒钟能够循环60次
+
+
+if __name__ == '__main__':
+    main()
