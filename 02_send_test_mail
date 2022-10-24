@@ -1,0 +1,38 @@
+import smtplib
+from email.mime.text import MIMEText
+from email.header import Header
+
+
+CONTENT = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<h1>Hi all,</h1>
+This is RHVH 4.5.3 nightly build, let's run a function testing tier 1 part for this build.
+<br>
+<br>
+Detail info as following:
+<a href="https://docs.google.com/spreadsheets/d/1VhZlJrKdURAF4DUOW5n4iYfRh99OK1qC9WEA7bBrbg4/edit?pli=1&skip_itp2_check=true#gid=931804491">Test link is here</a>
+</body>
+</html>
+"""
+
+msg = MIMEText(CONTENT, 'html', 'utf-8')
+msg['Subject'] = Header('[Nightly] redhat-virtualization-host-4.5.3-202210240134_8.6 - Function Testing - ETA: Oct 26', 'utf-8')
+msg['From'] = "cshao@redhat.com"
+msg['To'] = "rhevh-qe@redhat.com"
+
+TO = 'rhevh-qe@redhat.com'
+server = smtplib.SMTP('smtp.corp.redhat.com')
+
+try:
+    server.sendmail('cshao@redhat.com', TO, msg.as_string())
+    print ('successfully sent the mail')
+except:
+    print ('failed to send mail')
+
+server.quit()
